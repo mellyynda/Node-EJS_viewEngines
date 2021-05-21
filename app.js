@@ -9,85 +9,69 @@ const app = express();
 //connect to mongoDB Atlas and start listening for requests after connection established
 const dbURI = 'mongodb+srv://mellyynda:user123456@nodetuts.82blk.mongodb.net/note-tuts?retryWrites=true&w=majority';
 mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then((result) => app.listen(5000))
-    .catch(err => console.log(err));
-
-// middleware and static files
-app.use(express.static('public'));
-app.use(morgan('dev'));
-
-//mongose and mongo sandbox routes to understand how to connect to the db
-// app.get('/add-blog', (req, res) => {
-//     const blog = new Blog({
-//         title: 'new blog2',
-//         snippet: 'about my new blog',
-//         body: 'more about my new blog'
-//     });
-//     blog.save()
-//         .then((result) => {
-//             res.send(result)
-//         })
-//         .catch(err => {
-//             console.log(err);
-//         });
-// })
-
-// app.get('/all-blogs', (req, res) => {
-//     Blog.find()
-//         .then(result => {
-//             res.send(result)
-//         })
-//         .catch(err => console.log(err));
-// })
-
-// app.get('/single-blog', (req, res) => {
-//     Blog.findById('60992b29917d5e3e98ebbf29')
-//         .then(result => {
-//             res.send(result)
-//         })
-//         .catch(err => console.log(err))
-// })
-
-//middleware example
-// app.use((req, res, next) => {
-//     console.log("new request made");
-//     console.log("path: ", req.path);
-//     console.log("host: ", req.hostname);
-//     console.log("method", req.method);
-//     next();
-// });
+  .then((result) => app.listen(5000))
+  .catch(err => console.log(err));
 
 //register view engine
 app.set('view engine', 'ejs');
 
+// middleware and static files
+app.use(express.static('public'));
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev'));
+
 //routes
 app.get('/', (req, res) => {
-    res.redirect('/blogs');
+  res.redirect('/blogs');
 });
 
 app.get('/about', (req, res) => {
-    res.render('about', { title: 'About' });
+  res.render('about', { title: 'About' });
 });
 
 //blog routes
 app.get('/blogs', (req, res) => {
-    Blog.find().sort({ createdAt: -1 })
-        .then(result => {
-            res.render('index', { title: 'All Blogs', blogs: result })
-        })
-        .catch(err => console.log(err))
+  Blog.find().sort({ createdAt: -1 })
+    .then(result => {
+      res.render('index', { title: 'All Blogs', blogs: result })
+    })
+    .catch(err => console.log(err))
 })
 
 app.get('/blogs/create', (req, res) => {
-    res.render('create', { title: 'Create a new blog' });
+  res.render('create', { title: 'Create a new blog' });
 });
 
-//redirect
-app.get('/about-us', (req, res) => {
-    res.redirect('/about');
-});
+app.post('/blogs', (req, res) => {
+  const blog = new Blog(req.body);
+
+  blog.save()
+    .then(result => {
+      res.redirect('/blogs')
+    })
+    .catch(err => console.log(err))
+})
+
+app.get('/blogs/:id', (req, res) => {
+  const id = req.params.id;
+  Blog.findById(id)
+    .then(result => {
+      res.render('details', { blog: result, title: "Blog details" })
+    })
+    .catch(err => console.log(err))
+})
+
+app.delete('/blogs/:id', (req, res) => {
+  const id = req.params.id;
+
+  Blog.findByIdAndDelete(id)
+    .then(result => {
+      res.json({ redirect: '/blogs' })
+    })
+    .catch(err => console.log(err))
+})
 
 //404 page
 app.use((req, res) => {
-    res.status(404).render('404', { title: '404' });
+  res.status(404).render('404', { title: '404' });
 });
